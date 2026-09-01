@@ -6,18 +6,20 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 10000;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 if (!process.env.OPENAI_API_KEY) {
-  console.warn('WARNING: OPENAI_API_KEY is not set. Add it to .env before starting.');
+  console.warn('WARNING: OPENAI_API_KEY is not set. Add it to Render Environment Variables.');
 }
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// In the current GitHub repo, index.html and style.css are at the repository root.
+app.use(express.static(__dirname));
 
 const instructions = `
 Wewe ni Mijikenda AI, msaidizi wa akili wa kisasa.
@@ -29,12 +31,17 @@ Wewe ni Mijikenda AI, msaidizi wa akili wa kisasa.
 `;
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, app: 'Mijikenda AI', model: process.env.OPENAI_MODEL || 'gpt-5.6-luna' });
+  res.json({
+    ok: true,
+    app: 'Mijikenda AI',
+    model: process.env.OPENAI_MODEL || 'gpt-5.6-luna'
+  });
 });
 
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, previousResponseId } = req.body || {};
+
     if (!message || typeof message !== 'string' || !message.trim()) {
       return res.status(400).json({ error: 'Message is required.' });
     }
@@ -43,7 +50,9 @@ app.post('/api/chat', async (req, res) => {
       model: process.env.OPENAI_MODEL || 'gpt-5.6-luna',
       instructions,
       input: message.trim(),
-      ...(previousResponseId ? { previous_response_id: previousResponseId } : {})
+      ...(previousResponseId
+        ? { previous_response_id: previousResponseId }
+        : {})
     });
 
     res.json({
@@ -53,15 +62,16 @@ app.post('/api/chat', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      error: 'Mijikenda AI imepata hitilafu. Angalia API key, model na server logs.'
+      error: 'Mijikenda AI imepata hitilafu. Angalia Render logs na OpenAI API configuration.'
     });
   }
 });
 
-app.get(/.*/, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Serve the root website.
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Mijikenda AI running at http://localhost:${port}`);
+  console.log(`Mijikenda AI running on port ${port}`);
 });
