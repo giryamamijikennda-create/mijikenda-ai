@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mijikenda AI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="assets/mijikenda-logo.png" alt="Mijikenda AI logo">
+      <h1>Mijikenda AI</h1>
+      <p>Msaidizi wako wa akili, wakati wowote.</p>
+    </div>
+    <button class="new-chat" id="newChat">＋ New Chat</button>
+    <nav>
+      <button class="nav-item active">◌ <span>Chat History</span></button>
+      <button class="nav-item">♙ <span>Profile</span></button>
+      <button class="nav-item">⚙ <span>Settings</span></button>
+      <button class="nav-item">ⓘ <span>About Mijikenda AI</span></button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="toggle-row"><span>☾ Dark Mode</span><input id="themeToggle" type="checkbox" checked></div>
+      <div class="language">◎ Kiswahili <span>⌄</span></div>
+      <small>© 2026 Mijikenda AI. All rights reserved.</small>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="menu" id="menuBtn">☰</button>
+      <div>
+        <h2>Mijikenda AI</h2>
+        <p>Msaidizi wako wa akili, wakati wowote.</p>
+      </div>
+      <div class="avatar">M</div>
+    </header>
+
+    <section class="chat-layout">
+      <div class="conversation">
+        <div id="messages" class="messages">
+          <div class="welcome">
+            <img src="assets/mijikenda-logo.png" alt="">
+            <h3>Karibu Mijikenda AI 👋</h3>
+            <p>Uliza swali lolote kwa Kiswahili au English.</p>
+          </div>
+        </div>
+
+        <div class="composer-wrap">
+          <div class="notice">💡 Mijikenda AI inaweza kufanya makosa. Thibitisha taarifa muhimu.</div>
+          <div class="composer">
+            <textarea id="prompt" rows="2" placeholder="Uliza swali lolote..."></textarea>
+            <div class="composer-actions">
+              <label class="tool">📎 Attach File<input type="file" hidden id="fileInput"></label>
+              <button class="tool" id="webBtn">◎ Search Web</button>
+              <button class="send" id="sendBtn">➤ Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="history">
+        <h3>◔ &nbsp;Chat History</h3>
+        <div class="history-group"><b>Today</b>
+          <button class="history-item selected">Historia ya Wamijikenda...<small>10:30 AM</small></button>
+          <button class="history-item">Fasili za Methali za Kikendi<small>9:15 AM</small></button>
+          <button class="history-item">Mila na desturi za Wamijikenda<small>8:40 AM</small></button>
+          <button class="history-item">Lugha za Wamijikenda<small>7:22 AM</small></button>
+        </div>
+        <div class="history-group"><b>Yesterday</b>
+          <button class="history-item">Mazungumzo kuhusu utamaduni<small>Yesterday</small></button>
+          <button class="history-item">Ngoma za jadi za Mijikenda<small>Yesterday</small></button>
+          <button class="history-item">Vyakula vya kienyeji<small>Yesterday</small></button>
+        </div>
+        <button class="clear" id="clearBtn">♜ &nbsp;Clear All Chats</button>
+      </aside>
+    </section>
+    <footer>ONE PEOPLE &nbsp;•&nbsp; ONE HERITAGE &nbsp;•&nbsp; ONE FUTURE</footer>
+  </main>
+
+<script>
+const messages = document.getElementById('messages');
+const prompt = document.getElementById('prompt');
+const sendBtn = document.getElementById('sendBtn');
+const newChat = document.getElementById('newChat');
+const clearBtn = document.getElementById('clearBtn');
+const themeToggle = document.getElementById('themeToggle');
+const fileInput = document.getElementById('fileInput');
+const webBtn = document.getElementById('webBtn');
+
+function addMessage(text, type) {
+  const el = document.createElement('div');
+  el.className = 'message ' + type;
+  el.innerHTML = `<div class="bubble">${text.replace(/\n/g,'<br>')}</div><small>${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>`;
+  messages.appendChild(el);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+let previousResponseId = null;
+
+async function send() {
+  const text = prompt.value.trim();
+  if (!text) return;
+  document.querySelector('.welcome')?.remove();
+  addMessage(text, 'user');
+  prompt.value = '';
+  sendBtn.disabled = true;
+
+  const typing = document.createElement('div');
+  typing.className = 'message assistant';
+  typing.id = 'typing';
+  typing.innerHTML = '<div class="bubble">Mijikenda AI inaandika…</div>';
+  messages.appendChild(typing);
+  messages.scrollTop = messages.scrollHeight;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({message: text, previousResponseId})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    previousResponseId = data.id;
+    typing.remove();
+    addMessage(data.text, 'assistant');
+  } catch (err) {
+    typing.remove();
+    addMessage('Samahani, kuna tatizo la kuunganisha AI: ' + err.message, 'assistant');
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+newChat.onclick = () => {
+  previousResponseId = null;
+  messages.innerHTML = '<div class="welcome"><img src="assets/mijikenda-logo.png" alt=""><h3>Karibu Mijikenda AI 👋</h3><p>Uliza swali lolote kwa Kiswahili au English.</p></div>';
+  prompt.focus();
+};
+clearBtn.onclick = () => {
+  messages.innerHTML = '<div class="welcome"><img src="assets/mijikenda-logo.png" alt=""><h3>Chats zimefutwa.</h3><p>Anzisha mazungumzo mapya kwa kubonyeza New Chat.</p></div>';
+};
+themeToggle.onchange = () => document.body.classList.toggle('light', !themeToggle.checked);
+fileInput.onchange = () => {
+  if (fileInput.files[0]) addMessage('📎 Faili limechaguliwa: ' + fileInput.files[0].name, 'user');
+};
+webBtn.onclick = () => addMessage('🌐 Web Search imewashwa kwa demo. Tutaunganisha search halisi kwenye backend.', 'assistant');
+</script>
+</body>
+</html>
