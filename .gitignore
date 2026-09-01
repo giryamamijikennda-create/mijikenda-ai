@@ -1,0 +1,7 @@
+server/node_modules/
+server/.env
+android/.dart_tool/
+android/build/
+android/.flutter-plugins
+android/.flutter-plugins-dependencies
+android/.packages
